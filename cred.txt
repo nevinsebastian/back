@@ -1,0 +1,20 @@
+{
+  "message": "Employee created",
+  "employee": {
+    "id": 2,
+    "name": "sales",
+    "email": "sales@test.com",
+    "phone": "9876543210",
+    "branch_id": 1,
+    "role": "sales",
+    "password": "$2b$10$5MV1/.Wsew37Kb1EQdaB2OwVpQKypZCI75y1BthfLIxcTOkG3Dlma",
+    "created_at": "2025-03-10T03:20:02.335Z"
+  }
+}
+
+
+admin
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc0MTU3NjcwOSwiZXhwIjoxNzQxNTgwMzA5fQ.eIrjZyrtyMplgBBYn8D5u7OmEn7rzpimN7ZQSznL5a8"
+}
