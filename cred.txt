@@ -18,3 +18,8 @@ admin
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc0MTU3NjcwOSwiZXhwIjoxNzQxNTgwMzA5fQ.eIrjZyrtyMplgBBYn8D5u7OmEn7rzpimN7ZQSznL5a8"
 }
+
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJzYWxlc0B0ZXN0LmNvbSIsInJvbGUiOiJzYWxlcyIsImlhdCI6MTc0MTU4NzAxOCwiZXhwIjoxNzQxNTkwNjE4fQ.Z7tVQUYrBwGzlmgTwPa-sGdLaD8uXbqHaWj5Q2NK1kI"
+}

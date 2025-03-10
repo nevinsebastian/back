@@ -101,7 +101,8 @@
     },
     "/customers": {
       "post": {
-        "summary": "Add a new customer",
+        "summary": "Add a new customer (Sales only)",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -109,18 +110,87 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string", "example": "John Doe" },
-                  "phone": { "type": "string", "example": "1234567890" },
-                  "vehicle_details": { "type": "string", "example": "Toyota Camry 2023" }
+                  "customer_name": { "type": "string", "example": "John Doe" },
+                  "phone_number": { "type": "string", "example": "1234567890" },
+                  "vehicle": { "type": "string", "example": "Toyota Camry" },
+                  "variant": { "type": "string", "example": "LE", "nullable": true },
+                  "color": { "type": "string", "example": "Blue", "nullable": true },
+                  "price": { "type": "number", "example": 25000.00, "nullable": true }
                 },
-                "required": ["name", "phone"]
+                "required": ["customer_name", "phone_number", "vehicle"]
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Customer added successfully" },
-          "400": { "description": "Bad request" }
+          "201": {
+            "description": "Customer added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "customer_name": { "type": "string" },
+                        "phone_number": { "type": "string" },
+                        "vehicle": { "type": "string" },
+                        "variant": { "type": "string", "nullable": true },
+                        "color": { "type": "string", "nullable": true },
+                        "price": { "type": "number", "nullable": true },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "created_by": { "type": "integer" }
+                      }
+                    },
+                    "uniqueLink": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request" },
+          "403": { "description": "Forbidden" }
+        }
+      },
+      "get": {
+        "summary": "Fetch customers (Sales see own, Admin see all)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Customers fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "customers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "customer_name": { "type": "string" },
+                          "phone_number": { "type": "string" },
+                          "vehicle": { "type": "string" },
+                          "variant": { "type": "string", "nullable": true },
+                          "color": { "type": "string", "nullable": true },
+                          "price": { "type": "number", "nullable": true },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "created_by": { "type": "integer" },
+                          "created_by_name": { "type": "string", "nullable": true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Forbidden" }
         }
       }
     }
