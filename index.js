@@ -5,16 +5,16 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const cors = require('cors');
 const auth = require('./middleware/auth');
-const multer = require('multer'); // For file uploads
+const multer = require('multer');
 require('dotenv').config();
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 
-// Multer configuration for file uploads
-const storage = multer.memoryStorage(); // Store files in memory as buffers
+// Multer configuration
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit per file
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png/;
     const mimetype = filetypes.test(file.mimetype);
@@ -104,13 +104,16 @@ app.get('/customers', auth(['sales', 'admin']), async (req, res) => {
   }
 });
 
-// Fetch single customer details (Public, no auth required)
+// Fetch single customer details (Public)
 app.get('/customers/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
     const result = await pool.query(
-      'SELECT id, customer_name, phone_number, vehicle, variant, color, price, created_at, status FROM customers WHERE id = $1',
+      `SELECT id, customer_name, phone_number, vehicle, variant, color, price, created_at, status, 
+              dob, address, mobile_1, mobile_2, email, nominee, nominee_relation, payment_mode, 
+              finance_company, finance_amount, amount_paid, ex_showroom, tax, insurance, booking_fee, accessories, total_price 
+       FROM customers WHERE id = $1`,
       [id]
     );
 
@@ -128,78 +131,158 @@ app.get('/customers/:id', async (req, res) => {
   }
 });
 
-// Update customer details and status (Customer submits, Sales verifies)
-app.put('/customers/:id', upload, async (req, res) => {
-  const { id } = req.params;
-  const { status, dob, address, mobile_1, mobile_2, email, nominee, nominee_relation, payment_mode, finance_company, finance_amount } = req.body;
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  const files = req.files || {};
+// Serve customer images (Sales/Admin only)
+app.get('/customers/:id/:imageType', auth(['sales', 'admin']), async (req, res) => {
+  const { id, imageType } = req.params;
+  const validImageTypes = ['aadhar_front', 'aadhar_back', 'passport_photo'];
 
-  if (status && !['Submitted', 'Verified'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status. Use Submitted or Verified.' });
+  if (!validImageTypes.includes(imageType)) {
+    return res.status(400).json({ error: 'Invalid image type' });
   }
 
   try {
+    const result = await pool.query(
+      `SELECT ${imageType} FROM customers WHERE id = $1 AND created_by = $2`,
+      [id, req.user.id]
+    );
+
+    if (result.rowCount === 0 || !result.rows[0][imageType]) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    res.set('Content-Type', 'image/png');
+    res.send(result.rows[0][imageType]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch image' });
+  }
+});
+
+// Update customer details and status (Customer submits partially, Sales updates price)
+app.put('/customers/:id', upload, async (req, res) => {
+  const { id } = req.params;
+  const {
+    status, dob, address, mobile_1, mobile_2, email, nominee, nominee_relation, payment_mode,
+    finance_company, finance_amount, ex_showroom, tax, insurance, booking_fee, accessories
+  } = req.body;
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const files = req.files || {};
+
+  try {
     if (token) {
-      // Sales verifying
       const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
       const userRole = decoded.role;
       const userId = decoded.id;
 
-      if (userRole === 'sales' && status === 'Verified') {
+      if (userRole === 'sales') {
+        // Sales can update price details or verify
+        const queryParams = [
+          status || null,
+          ex_showroom ? parseFloat(ex_showroom) : null,
+          tax ? parseFloat(tax) : null,
+          insurance ? parseFloat(insurance) : null,
+          booking_fee ? parseFloat(booking_fee) : null,
+          accessories ? parseFloat(accessories) : null,
+          id,
+          userId
+        ];
+
         const result = await pool.query(
-          'UPDATE customers SET status = $1 WHERE id = $2 AND created_by = $3 RETURNING *',
-          [status, id, userId]
+          `UPDATE customers 
+           SET status = COALESCE($1, status), 
+               ex_showroom = COALESCE($2, ex_showroom), 
+               tax = COALESCE($3, tax), 
+               insurance = COALESCE($4, insurance), 
+               booking_fee = COALESCE($5, booking_fee), 
+               accessories = COALESCE($6, accessories),
+               total_price = COALESCE($2, ex_showroom, 0) + COALESCE($3, tax, 0) + COALESCE($4, insurance, 0) + COALESCE($5, booking_fee, 0) + COALESCE($6, accessories, 0)
+           WHERE id = $7 AND created_by = $8 RETURNING *`,
+          queryParams
         );
+
         if (result.rowCount === 0) {
           return res.status(404).json({ error: 'Customer not found or not owned by this sales employee' });
         }
-        return res.json({ message: 'Customer verified successfully', customer: result.rows[0] });
-      } else if (userRole && status === 'Submitted') {
-        return res.status(403).json({ error: 'Only customers can submit details' });
+        return res.json({ message: 'Customer updated successfully', customer: result.rows[0] });
       }
     }
 
-    // Customer submitting details (no token required)
-    if (status === 'Submitted') {
-      const queryParams = [
-        status,
-        dob || null,
-        address || null,
-        mobile_1 || null,
-        mobile_2 || null,
-        email || null,
-        nominee || null,
-        nominee_relation || null,
-        payment_mode || null,
-        finance_company || null,
-        finance_amount ? parseFloat(finance_amount) : null,
-        files.aadhar_front ? files.aadhar_front[0].buffer : null,
-        files.aadhar_back ? files.aadhar_back[0].buffer : null,
-        files.passport_photo ? files.passport_photo[0].buffer : null,
-        id,
-      ];
+    // Customer partial submission
+    const queryParams = [
+      dob || null,
+      address || null,
+      mobile_1 || null,
+      mobile_2 || null,
+      email || null,
+      nominee || null,
+      nominee_relation || null,
+      payment_mode || null,
+      finance_company || null,
+      finance_amount ? parseFloat(finance_amount) : null,
+      files.aadhar_front ? files.aadhar_front[0].buffer : null,
+      files.aadhar_back ? files.aadhar_back[0].buffer : null,
+      files.passport_photo ? files.passport_photo[0].buffer : null,
+      id,
+    ];
 
-      const result = await pool.query(
-        `UPDATE customers 
-         SET status = $1, dob = $2, address = $3, mobile_1 = $4, mobile_2 = $5, email = $6, 
-             nominee = $7, nominee_relation = $8, payment_mode = $9, finance_company = $10, 
-             finance_amount = $11, aadhar_front = $12, aadhar_back = $13, passport_photo = $14
-         WHERE id = $15 AND status = 'Pending' RETURNING *`,
-        queryParams
-      );
+    const result = await pool.query(
+      `UPDATE customers 
+       SET dob = COALESCE($1, dob), address = COALESCE($2, address), mobile_1 = COALESCE($3, mobile_1), 
+           mobile_2 = COALESCE($4, mobile_2), email = COALESCE($5, email), nominee = COALESCE($6, nominee), 
+           nominee_relation = COALESCE($7, nominee_relation), payment_mode = COALESCE($8, payment_mode), 
+           finance_company = COALESCE($9, finance_company), finance_amount = COALESCE($10, finance_amount), 
+           aadhar_front = COALESCE($11, aadhar_front), aadhar_back = COALESCE($12, aadhar_back), 
+           passport_photo = COALESCE($13, passport_photo)
+       WHERE id = $14 AND status = 'Pending' RETURNING *`,
+      queryParams
+    );
 
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Customer not found or already submitted' });
-      }
-
-      return res.json({ message: 'Customer details submitted successfully', customer: result.rows[0] });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Customer not found or already submitted' });
     }
 
-    return res.status(403).json({ error: 'Unauthorized action' });
+    const customer = result.rows[0];
+    // Check if all required fields are filled to mark as Submitted
+    const requiredFields = ['dob', 'address', 'mobile_1', 'email', 'nominee', 'nominee_relation', 'payment_mode', 'aadhar_front', 'aadhar_back', 'passport_photo'];
+    const isFullySubmitted = requiredFields.every(field => customer[field] !== null && customer[field] !== '');
+    if (isFullySubmitted && (!customer.payment_mode || customer.payment_mode !== 'Finance' || (customer.finance_company && customer.finance_amount))) {
+      await pool.query(`UPDATE customers SET status = 'Submitted' WHERE id = $1`, [id]);
+      customer.status = 'Submitted';
+    }
+
+    return res.json({ message: 'Customer details updated successfully', customer });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to update customer status or details' });
+    res.status(500).json({ error: 'Failed to update customer details' });
+  }
+});
+
+// Update payment amount (Sales only)
+app.put('/customers/:id/payments', auth(['sales']), async (req, res) => {
+  const { id } = req.params;
+  const { amount } = req.body;
+  const userId = req.user.id;
+
+  if (!amount || isNaN(amount) || amount < 0) {
+    return res.status(400).json({ error: 'Valid amount is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET amount_paid = COALESCE(amount_paid, 0) + $1
+       WHERE id = $2 AND created_by = $3 RETURNING *`,
+      [parseFloat(amount), id, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Customer not found or not owned by this sales employee' });
+    }
+
+    res.json({ message: 'Payment updated successfully', customer: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update payment' });
   }
 });
 
