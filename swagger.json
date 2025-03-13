@@ -19,8 +19,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string", "example": "admin@dealersync.com" },
-                  "password": { "type": "string", "example": "password123" }
+                  "email": { "type": "string", "example": "sales@test.com" },
+                  "password": { "type": "string", "example": "test" }
                 },
                 "required": ["email", "password"]
               }
@@ -142,7 +142,8 @@
                         "color": { "type": "string", "nullable": true },
                         "price": { "type": "number", "nullable": true },
                         "created_at": { "type": "string", "format": "date-time" },
-                        "created_by": { "type": "integer" }
+                        "created_by": { "type": "integer" },
+                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" }
                       }
                     },
                     "uniqueLink": { "type": "string" }
@@ -181,7 +182,8 @@
                           "price": { "type": "number", "nullable": true },
                           "created_at": { "type": "string", "format": "date-time" },
                           "created_by": { "type": "integer" },
-                          "created_by_name": { "type": "string", "nullable": true }
+                          "created_by_name": { "type": "string", "nullable": true },
+                          "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" }
                         }
                       }
                     }
@@ -192,6 +194,74 @@
           },
           "403": { "description": "Forbidden" }
         }
+      }
+    },
+    "/customers/{id}": {
+      "put": {
+        "summary": "Update customer status (Customer submits, Sales verifies)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "The ID of the customer to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["Submitted", "Verified"], "example": "Submitted" }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "customer_name": { "type": "string" },
+                        "phone_number": { "type": "string" },
+                        "vehicle": { "type": "string" },
+                        "variant": { "type": "string", "nullable": true },
+                        "color": { "type": "string", "nullable": true },
+                        "price": { "type": "number", "nullable": true },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "created_by": { "type": "integer" },
+                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Submitted" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request - Invalid status" },
+          "403": { "description": "Forbidden - Unauthorized action" },
+          "404": { "description": "Customer not found or not editable" }
+        },
+        "security": [
+          { "bearerAuth": [] }, 
+          {} 
+        ]
       }
     }
   },
