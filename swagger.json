@@ -19,8 +19,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string", "example": "admin@dealersync.com" },
-                  "password": { "type": "string", "example": "password123" }
+                  "email": { "type": "string", "example": "sales@test.com" },
+                  "password": { "type": "string", "example": "test" }
                 },
                 "required": ["email", "password"]
               }
@@ -131,27 +131,7 @@
                   "type": "object",
                   "properties": {
                     "message": { "type": "string" },
-                    "customer": {
-                      "type": "object",
-                      "properties": {
-                        "id": { "type": "integer" },
-                        "customer_name": { "type": "string" },
-                        "phone_number": { "type": "string" },
-                        "vehicle": { "type": "string" },
-                        "variant": { "type": "string", "nullable": true },
-                        "color": { "type": "string", "nullable": true },
-                        "price": { "type": "number", "nullable": true },
-                        "created_at": { "type": "string", "format": "date-time" },
-                        "created_by": { "type": "integer" },
-                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" },
-                        "amount_paid": { "type": "number", "example": 0.00, "nullable": true },
-                        "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
-                        "tax": { "type": "number", "example": 2000.00, "nullable": true },
-                        "insurance": { "type": "number", "example": 1000.00, "nullable": true },
-                        "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
-                        "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                      }
-                    },
+                    "customer": { "$ref": "#/components/schemas/Customer" },
                     "uniqueLink": { "type": "string" }
                   }
                 }
@@ -176,38 +156,7 @@
                     "message": { "type": "string" },
                     "customers": {
                       "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": { "type": "integer" },
-                          "customer_name": { "type": "string" },
-                          "phone_number": { "type": "string" },
-                          "vehicle": { "type": "string" },
-                          "variant": { "type": "string", "nullable": true },
-                          "color": { "type": "string", "nullable": true },
-                          "price": { "type": "number", "nullable": true },
-                          "created_at": { "type": "string", "format": "date-time" },
-                          "created_by": { "type": "integer" },
-                          "created_by_name": { "type": "string", "nullable": true },
-                          "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" },
-                          "dob": { "type": "string", "format": "date", "nullable": true },
-                          "address": { "type": "string", "nullable": true },
-                          "mobile_1": { "type": "string", "nullable": true },
-                          "mobile_2": { "type": "string", "nullable": true },
-                          "email": { "type": "string", "nullable": true },
-                          "nominee": { "type": "string", "nullable": true },
-                          "nominee_relation": { "type": "string", "nullable": true },
-                          "payment_mode": { "type": "string", "nullable": true },
-                          "finance_company": { "type": "string", "nullable": true },
-                          "finance_amount": { "type": "number", "nullable": true },
-                          "amount_paid": { "type": "number", "example": 0.00, "nullable": true },
-                          "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
-                          "tax": { "type": "number", "example": 2000.00, "nullable": true },
-                          "insurance": { "type": "number", "example": 1000.00, "nullable": true },
-                          "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
-                          "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                        }
-                      }
+                      "items": { "$ref": "#/components/schemas/Customer" }
                     }
                   }
                 }
@@ -239,36 +188,7 @@
                   "type": "object",
                   "properties": {
                     "message": { "type": "string" },
-                    "customer": {
-                      "type": "object",
-                      "properties": {
-                        "id": { "type": "integer" },
-                        "customer_name": { "type": "string" },
-                        "phone_number": { "type": "string" },
-                        "vehicle": { "type": "string" },
-                        "variant": { "type": "string", "nullable": true },
-                        "color": { "type": "string", "nullable": true },
-                        "price": { "type": "number", "nullable": true },
-                        "created_at": { "type": "string", "format": "date-time" },
-                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" },
-                        "dob": { "type": "string", "format": "date", "nullable": true },
-                        "address": { "type": "string", "nullable": true },
-                        "mobile_1": { "type": "string", "nullable": true },
-                        "mobile_2": { "type": "string", "nullable": true },
-                        "email": { "type": "string", "nullable": true },
-                        "nominee": { "type": "string", "nullable": true },
-                        "nominee_relation": { "type": "string", "nullable": true },
-                        "payment_mode": { "type": "string", "nullable": true },
-                        "finance_company": { "type": "string", "nullable": true },
-                        "finance_amount": { "type": "number", "nullable": true },
-                        "amount_paid": { "type": "number", "example": 0.00, "nullable": true },
-                        "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
-                        "tax": { "type": "number", "example": 2000.00, "nullable": true },
-                        "insurance": { "type": "number", "example": 1000.00, "nullable": true },
-                        "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
-                        "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                      }
-                    }
+                    "customer": { "$ref": "#/components/schemas/Customer" }
                   }
                 }
               }
@@ -278,7 +198,7 @@
         }
       },
       "put": {
-        "summary": "Update customer details and status (Customer submits, Sales updates price)",
+        "summary": "Update customer details (Customer partial submit, Sales updates price/status)",
         "parameters": [
           {
             "name": "id",
@@ -289,13 +209,12 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "status": { "type": "string", "enum": ["Submitted", "Verified"], "example": "Submitted" },
+                  "status": { "type": "string", "enum": ["Submitted", "Verified"], "example": "Verified", "nullable": true },
                   "dob": { "type": "string", "format": "date", "example": "1990-01-01", "nullable": true },
                   "address": { "type": "string", "example": "123 Main St", "nullable": true },
                   "mobile_1": { "type": "string", "example": "1234567890", "nullable": true },
@@ -314,64 +233,33 @@
                   "insurance": { "type": "number", "example": 1000.00, "nullable": true },
                   "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
                   "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                },
-                "required": ["status"]
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Customer status updated successfully",
+            "description": "Customer details updated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "message": { "type": "string" },
-                    "customer": {
-                      "type": "object",
-                      "properties": {
-                        "id": { "type": "integer" },
-                        "customer_name": { "type": "string" },
-                        "phone_number": { "type": "string" },
-                        "vehicle": { "type": "string" },
-                        "variant": { "type": "string", "nullable": true },
-                        "color": { "type": "string", "nullable": true },
-                        "price": { "type": "number", "nullable": true },
-                        "created_at": { "type": "string", "format": "date-time" },
-                        "created_by": { "type": "integer" },
-                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Submitted" },
-                        "dob": { "type": "string", "format": "date", "nullable": true },
-                        "address": { "type": "string", "nullable": true },
-                        "mobile_1": { "type": "string", "nullable": true },
-                        "mobile_2": { "type": "string", "nullable": true },
-                        "email": { "type": "string", "nullable": true },
-                        "nominee": { "type": "string", "nullable": true },
-                        "nominee_relation": { "type": "string", "nullable": true },
-                        "payment_mode": { "type": "string", "nullable": true },
-                        "finance_company": { "type": "string", "nullable": true },
-                        "finance_amount": { "type": "number", "nullable": true },
-                        "amount_paid": { "type": "number", "example": 0.00, "nullable": true },
-                        "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
-                        "tax": { "type": "number", "example": 2000.00, "nullable": true },
-                        "insurance": { "type": "number", "example": 1000.00, "nullable": true },
-                        "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
-                        "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                      }
-                    }
+                    "customer": { "$ref": "#/components/schemas/Customer" }
                   }
                 }
               }
             }
           },
-          "400": { "description": "Bad request - Invalid status or data" },
+          "400": { "description": "Bad request - Invalid data" },
           "403": { "description": "Forbidden - Unauthorized action" },
           "404": { "description": "Customer not found or not editable" }
         },
         "security": [
           { "bearerAuth": [] },
-          {} 
+          {}
         ]
       }
     },
@@ -410,37 +298,7 @@
                   "type": "object",
                   "properties": {
                     "message": { "type": "string" },
-                    "customer": {
-                      "type": "object",
-                      "properties": {
-                        "id": { "type": "integer" },
-                        "customer_name": { "type": "string" },
-                        "phone_number": { "type": "string" },
-                        "vehicle": { "type": "string" },
-                        "variant": { "type": "string", "nullable": true },
-                        "color": { "type": "string", "nullable": true },
-                        "price": { "type": "number", "nullable": true },
-                        "created_at": { "type": "string", "format": "date-time" },
-                        "created_by": { "type": "integer" },
-                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Submitted" },
-                        "dob": { "type": "string", "format": "date", "nullable": true },
-                        "address": { "type": "string", "nullable": true },
-                        "mobile_1": { "type": "string", "nullable": true },
-                        "mobile_2": { "type": "string", "nullable": true },
-                        "email": { "type": "string", "nullable": true },
-                        "nominee": { "type": "string", "nullable": true },
-                        "nominee_relation": { "type": "string", "nullable": true },
-                        "payment_mode": { "type": "string", "nullable": true },
-                        "finance_company": { "type": "string", "nullable": true },
-                        "finance_amount": { "type": "number", "nullable": true },
-                        "amount_paid": { "type": "number", "example": 5000.00, "nullable": true },
-                        "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
-                        "tax": { "type": "number", "example": 2000.00, "nullable": true },
-                        "insurance": { "type": "number", "example": 1000.00, "nullable": true },
-                        "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
-                        "accessories": { "type": "number", "example": 1500.00, "nullable": true }
-                      }
-                    }
+                    "customer": { "$ref": "#/components/schemas/Customer" }
                   }
                 }
               }
@@ -452,9 +310,78 @@
         },
         "security": [{ "bearerAuth": [] }]
       }
+    },
+    "/customers/{id}/{imageType}": {
+      "get": {
+        "summary": "Fetch customer image (Sales/Admin only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 },
+            "description": "The ID of the customer"
+          },
+          {
+            "name": "imageType",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["aadhar_front", "aadhar_back", "passport_photo"], "example": "aadhar_front" },
+            "description": "The type of image to fetch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image fetched successfully",
+            "content": {
+              "image/png": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "400": { "description": "Bad request - Invalid image type" },
+          "403": { "description": "Forbidden - Unauthorized" },
+          "404": { "description": "Image not found" }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
     }
   },
   "components": {
+    "schemas": {
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "customer_name": { "type": "string" },
+          "phone_number": { "type": "string" },
+          "vehicle": { "type": "string" },
+          "variant": { "type": "string", "nullable": true },
+          "color": { "type": "string", "nullable": true },
+          "price": { "type": "number", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "integer" },
+          "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" },
+          "dob": { "type": "string", "format": "date", "nullable": true },
+          "address": { "type": "string", "nullable": true },
+          "mobile_1": { "type": "string", "nullable": true },
+          "mobile_2": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "nominee": { "type": "string", "nullable": true },
+          "nominee_relation": { "type": "string", "nullable": true },
+          "payment_mode": { "type": "string", "nullable": true },
+          "finance_company": { "type": "string", "nullable": true },
+          "finance_amount": { "type": "number", "nullable": true },
+          "amount_paid": { "type": "number", "example": 0.00, "nullable": true },
+          "ex_showroom": { "type": "number", "example": 20000.00, "nullable": true },
+          "tax": { "type": "number", "example": 2000.00, "nullable": true },
+          "insurance": { "type": "number", "example": 1000.00, "nullable": true },
+          "booking_fee": { "type": "number", "example": 500.00, "nullable": true },
+          "accessories": { "type": "number", "example": 1500.00, "nullable": true },
+          "total_price": { "type": "number", "example": 25000.00, "nullable": true }
+        }
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
