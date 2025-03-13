@@ -19,8 +19,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string", "example": "sales@test.com" },
-                  "password": { "type": "string", "example": "test" }
+                  "email": { "type": "string", "example": "admin@dealersync.com" },
+                  "password": { "type": "string", "example": "password123" }
                 },
                 "required": ["email", "password"]
               }
@@ -183,7 +183,17 @@
                           "created_at": { "type": "string", "format": "date-time" },
                           "created_by": { "type": "integer" },
                           "created_by_name": { "type": "string", "nullable": true },
-                          "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" }
+                          "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" },
+                          "dob": { "type": "string", "format": "date", "nullable": true },
+                          "address": { "type": "string", "nullable": true },
+                          "mobile_1": { "type": "string", "nullable": true },
+                          "mobile_2": { "type": "string", "nullable": true },
+                          "email": { "type": "string", "nullable": true },
+                          "nominee": { "type": "string", "nullable": true },
+                          "nominee_relation": { "type": "string", "nullable": true },
+                          "payment_mode": { "type": "string", "nullable": true },
+                          "finance_company": { "type": "string", "nullable": true },
+                          "finance_amount": { "type": "number", "nullable": true }
                         }
                       }
                     }
@@ -197,28 +207,80 @@
       }
     },
     "/customers/{id}": {
-      "put": {
-        "summary": "Update customer status (Customer submits, Sales verifies)",
+      "get": {
+        "summary": "Fetch single customer details (Public)",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 1
-            },
+            "schema": { "type": "integer", "example": 1 },
+            "description": "The ID of the customer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer details fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "customer_name": { "type": "string" },
+                        "phone_number": { "type": "string" },
+                        "vehicle": { "type": "string" },
+                        "variant": { "type": "string", "nullable": true },
+                        "color": { "type": "string", "nullable": true },
+                        "price": { "type": "number", "nullable": true },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Pending" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Customer not found" }
+        }
+      },
+      "put": {
+        "summary": "Update customer details and status (Customer submits, Sales verifies)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 },
             "description": "The ID of the customer to update"
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "status": { "type": "string", "enum": ["Submitted", "Verified"], "example": "Submitted" }
+                  "status": { "type": "string", "enum": ["Submitted", "Verified"], "example": "Submitted" },
+                  "dob": { "type": "string", "format": "date", "example": "1990-01-01", "nullable": true },
+                  "address": { "type": "string", "example": "123 Main St", "nullable": true },
+                  "mobile_1": { "type": "string", "example": "1234567890", "nullable": true },
+                  "mobile_2": { "type": "string", "example": "0987654321", "nullable": true },
+                  "email": { "type": "string", "example": "john.doe@example.com", "nullable": true },
+                  "nominee": { "type": "string", "example": "Jane Doe", "nullable": true },
+                  "nominee_relation": { "type": "string", "example": "Spouse", "nullable": true },
+                  "payment_mode": { "type": "string", "example": "Finance", "nullable": true },
+                  "finance_company": { "type": "string", "example": "XYZ Finance", "nullable": true },
+                  "finance_amount": { "type": "number", "example": 20000.00, "nullable": true },
+                  "aadhar_front": { "type": "string", "format": "binary", "nullable": true },
+                  "aadhar_back": { "type": "string", "format": "binary", "nullable": true },
+                  "passport_photo": { "type": "string", "format": "binary", "nullable": true }
                 },
                 "required": ["status"]
               }
@@ -246,7 +308,17 @@
                         "price": { "type": "number", "nullable": true },
                         "created_at": { "type": "string", "format": "date-time" },
                         "created_by": { "type": "integer" },
-                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Submitted" }
+                        "status": { "type": "string", "enum": ["Pending", "Submitted", "Verified"], "example": "Submitted" },
+                        "dob": { "type": "string", "format": "date", "nullable": true },
+                        "address": { "type": "string", "nullable": true },
+                        "mobile_1": { "type": "string", "nullable": true },
+                        "mobile_2": { "type": "string", "nullable": true },
+                        "email": { "type": "string", "nullable": true },
+                        "nominee": { "type": "string", "nullable": true },
+                        "nominee_relation": { "type": "string", "nullable": true },
+                        "payment_mode": { "type": "string", "nullable": true },
+                        "finance_company": { "type": "string", "nullable": true },
+                        "finance_amount": { "type": "number", "nullable": true }
                       }
                     }
                   }
@@ -254,7 +326,7 @@
               }
             }
           },
-          "400": { "description": "Bad request - Invalid status" },
+          "400": { "description": "Bad request - Invalid status or data" },
           "403": { "description": "Forbidden - Unauthorized action" },
           "404": { "description": "Customer not found or not editable" }
         },
