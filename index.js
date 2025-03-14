@@ -370,6 +370,74 @@ app.put('/customers/:id/delivered', auth(['sales']), upload, async (req, res) =>
   }
 });
 
+// Get analytics data
+app.get('/analytics', auth(['sales', 'admin']), async (req, res) => {
+  try {
+    console.log('Fetching analytics data...');
+    
+    // Get current analytics
+    const analyticsResult = await pool.query('SELECT * FROM analytics WHERE id = 1');
+    console.log('Analytics query result:', analyticsResult.rows);
+    
+    if (analyticsResult.rows.length === 0) {
+      console.log('No analytics data found, triggering update...');
+      await pool.query('SELECT update_analytics()');
+      const retryResult = await pool.query('SELECT * FROM analytics WHERE id = 1');
+      if (retryResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Analytics data not found' });
+      }
+      analyticsResult.rows = retryResult.rows;
+    }
+
+    // Get monthly trends (last 6 months)
+    console.log('Fetching monthly trends...');
+    const trendsResult = await pool.query(`
+      SELECT 
+        DATE_TRUNC('month', created_at) as month,
+        COUNT(*) as total_customers,
+        COUNT(CASE WHEN status = 'Verified' THEN 1 END) as verified_customers,
+        SUM(COALESCE(amount_paid, 0)) as revenue
+      FROM customers
+      WHERE created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month ASC
+    `);
+    console.log('Trends query result:', trendsResult.rows);
+
+    // Get top performing sales executives
+    console.log('Fetching top sales executives...');
+    const topSalesResult = await pool.query(`
+      SELECT 
+        c.created_by as sales_executive_id,
+        e.name as sales_executive_name,
+        COUNT(*) as total_customers,
+        COUNT(CASE WHEN c.status = 'Verified' THEN 1 END) as verified_customers,
+        SUM(COALESCE(c.amount_paid, 0)) as total_revenue
+      FROM customers c
+      LEFT JOIN employees e ON c.created_by = e.id
+      GROUP BY c.created_by, e.name
+      ORDER BY verified_customers DESC
+      LIMIT 5
+    `);
+    console.log('Top sales query result:', topSalesResult.rows);
+
+    const response = {
+      current: analyticsResult.rows[0],
+      trends: trendsResult.rows,
+      topSales: topSalesResult.rows
+    };
+
+    console.log('Sending analytics response:', response);
+    res.json(response);
+  } catch (err) {
+    console.error('Error in /analytics endpoint:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch analytics data',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
