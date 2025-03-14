@@ -10,7 +10,6 @@ require('dotenv').config();
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 
-// Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -28,9 +27,11 @@ const upload = multer({
   { name: 'aadhar_front', maxCount: 1 },
   { name: 'aadhar_back', maxCount: 1 },
   { name: 'passport_photo', maxCount: 1 },
+  { name: 'front_delivery_photo', maxCount: 1 },
+  { name: 'back_delivery_photo', maxCount: 1 },
+  { name: 'delivery_photo', maxCount: 1 },
 ]);
 
-// Middleware
 app.use(express.json());
 app.use(cors({
   origin: ['http://localhost:3001', 'http://192.168.29.199:3001'],
@@ -38,7 +39,6 @@ app.use(cors({
 }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Routes
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 
@@ -112,7 +112,9 @@ app.get('/customers/:id', async (req, res) => {
     const result = await pool.query(
       `SELECT id, customer_name, phone_number, vehicle, variant, color, price, created_at, status, 
               dob, address, mobile_1, mobile_2, email, nominee, nominee_relation, payment_mode, 
-              finance_company, finance_amount, amount_paid, ex_showroom, tax, insurance, booking_fee, accessories, total_price 
+              finance_company, finance_amount, amount_paid, ex_showroom, tax, insurance, booking_fee, 
+              accessories, total_price, sales_verified, accounts_verified, manager_verified, rto_verified,
+              front_delivery_photo, back_delivery_photo, delivery_photo
        FROM customers WHERE id = $1`,
       [id]
     );
@@ -134,7 +136,10 @@ app.get('/customers/:id', async (req, res) => {
 // Serve customer images (Sales/Admin only)
 app.get('/customers/:id/:imageType', auth(['sales', 'admin']), async (req, res) => {
   const { id, imageType } = req.params;
-  const validImageTypes = ['aadhar_front', 'aadhar_back', 'passport_photo'];
+  const validImageTypes = [
+    'aadhar_front', 'aadhar_back', 'passport_photo',
+    'front_delivery_photo', 'back_delivery_photo', 'delivery_photo'
+  ];
 
   if (!validImageTypes.includes(imageType)) {
     return res.status(400).json({ error: 'Invalid image type' });
@@ -175,7 +180,6 @@ app.put('/customers/:id', upload, async (req, res) => {
       const userId = decoded.id;
 
       if (userRole === 'sales') {
-        // Sales can update price details or verify
         const queryParams = [
           status || null,
           ex_showroom ? parseFloat(ex_showroom) : null,
@@ -207,7 +211,6 @@ app.put('/customers/:id', upload, async (req, res) => {
       }
     }
 
-    // Customer partial submission
     const queryParams = [
       dob || null,
       address || null,
@@ -242,7 +245,6 @@ app.put('/customers/:id', upload, async (req, res) => {
     }
 
     const customer = result.rows[0];
-    // Check if all required fields are filled to mark as Submitted
     const requiredFields = ['dob', 'address', 'mobile_1', 'email', 'nominee', 'nominee_relation', 'payment_mode', 'aadhar_front', 'aadhar_back', 'passport_photo'];
     const isFullySubmitted = requiredFields.every(field => customer[field] !== null && customer[field] !== '');
     if (isFullySubmitted && (!customer.payment_mode || customer.payment_mode !== 'Finance' || (customer.finance_company && customer.finance_amount))) {
@@ -283,6 +285,88 @@ app.put('/customers/:id/payments', auth(['sales']), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update payment' });
+  }
+});
+
+// Verify customer (Sales only)
+app.put('/customers/:id/verify', auth(['sales']), async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET status = 'Verified', sales_verified = TRUE
+       WHERE id = $1 AND created_by = $2 RETURNING *`,
+      [id, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Customer not found or not owned by this sales employee' });
+    }
+
+    res.json({ message: 'Customer verified successfully', customer: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to verify customer' });
+  }
+});
+
+// Delete customer (Sales only)
+app.delete('/customers/:id', auth(['sales']), async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM customers WHERE id = $1 AND created_by = $2 RETURNING *`,
+      [id, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Customer not found or not owned by this sales employee' });
+    }
+
+    res.json({ message: 'Customer deleted successfully', customer: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete customer' });
+  }
+});
+
+// Mark customer as delivered and upload delivery photos (Sales only)
+app.put('/customers/:id/delivered', auth(['sales']), upload, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const files = req.files || {};
+
+  try {
+    const queryParams = [
+      files.front_delivery_photo ? files.front_delivery_photo[0].buffer : null,
+      files.back_delivery_photo ? files.back_delivery_photo[0].buffer : null,
+      files.delivery_photo ? files.delivery_photo[0].buffer : null,
+      id,
+      userId
+    ];
+
+    const result = await pool.query(
+      `UPDATE customers 
+       SET status = 'Delivered',
+           front_delivery_photo = COALESCE($1, front_delivery_photo),
+           back_delivery_photo = COALESCE($2, back_delivery_photo),
+           delivery_photo = COALESCE($3, delivery_photo)
+       WHERE id = $4 AND created_by = $5 RETURNING *`,
+      queryParams
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Customer not found or not owned by this sales employee' });
+    }
+
+    res.json({ message: 'Customer marked as delivered successfully', customer: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to mark customer as delivered' });
   }
 });
 
