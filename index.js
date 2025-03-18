@@ -478,27 +478,31 @@ app.get('/accounts/customers/:id', auth(['accounts']), async (req, res) => {
       `SELECT 
         c.*,
         CASE 
-          WHEN c.front_photo IS NOT NULL THEN encode(c.front_photo, 'base64')
+          WHEN c.aadhar_front IS NOT NULL THEN encode(c.aadhar_front, 'base64')
           ELSE NULL 
-        END as front_photo_base64,
+        END as aadhar_front_base64,
         CASE 
-          WHEN c.back_photo IS NOT NULL THEN encode(c.back_photo, 'base64')
+          WHEN c.aadhar_back IS NOT NULL THEN encode(c.aadhar_back, 'base64')
           ELSE NULL 
-        END as back_photo_base64,
+        END as aadhar_back_base64,
         CASE 
-          WHEN c.aadhar_photo IS NOT NULL THEN encode(c.aadhar_photo, 'base64')
+          WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
           ELSE NULL 
-        END as aadhar_photo_base64,
+        END as passport_photo_base64,
         CASE 
-          WHEN c.pan_photo IS NOT NULL THEN encode(c.pan_photo, 'base64')
+          WHEN c.front_delivery_photo IS NOT NULL THEN encode(c.front_delivery_photo, 'base64')
           ELSE NULL 
-        END as pan_photo_base64,
+        END as front_delivery_photo_base64,
         CASE 
-          WHEN c.bank_photo IS NOT NULL THEN encode(c.bank_photo, 'base64')
+          WHEN c.back_delivery_photo IS NOT NULL THEN encode(c.back_delivery_photo, 'base64')
           ELSE NULL 
-        END as bank_photo_base64
+        END as back_delivery_photo_base64,
+        CASE 
+          WHEN c.delivery_photo IS NOT NULL THEN encode(c.delivery_photo, 'base64')
+          ELSE NULL 
+        END as delivery_photo_base64
       FROM customers c 
-      WHERE c.id = $1 AND c.status = 'Verified'`,
+      WHERE c.id = $1 AND c.sales_verified = true`,
       [id]
     );
 
@@ -509,13 +513,16 @@ app.get('/accounts/customers/:id', auth(['accounts']), async (req, res) => {
     const customer = {
       ...result.rows[0],
       created_at: result.rows[0].created_at.toISOString(),
-      updated_at: result.rows[0].updated_at.toISOString()
+      updated_at: result.rows[0].updated_at?.toISOString()
     };
 
     res.json({ customer });
   } catch (err) {
     console.error('Error in /accounts/customers/:id:', err);
-    res.status(500).json({ error: 'Failed to fetch customer details' });
+    res.status(500).json({ 
+      error: 'Failed to fetch customer details',
+      details: err.message 
+    });
   }
 });
 
@@ -548,6 +555,142 @@ app.put('/accounts/customers/:id/verify', auth(['accounts']), async (req, res) =
   } catch (err) {
     console.error('Error in /accounts/customers/:id/verify:', err);
     res.status(500).json({ error: 'Failed to verify customer' });
+  }
+});
+
+// Update customer finance details (Accounts only)
+app.put('/accounts/customers/:id/finance', auth(['accounts']), async (req, res) => {
+  const { id } = req.params;
+  const { 
+    payment_mode,
+    finance_company,
+    finance_amount,
+    emi,
+    tenure,
+    amount_paid
+  } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET 
+        payment_mode = COALESCE($1, payment_mode),
+        finance_company = COALESCE($2, finance_company),
+        finance_amount = COALESCE($3, finance_amount),
+        emi = COALESCE($4, emi),
+        tenure = COALESCE($5, tenure),
+        amount_paid = COALESCE($6, amount_paid),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7 AND sales_verified = true
+       RETURNING *`,
+      [payment_mode, finance_company, finance_amount, emi, tenure, amount_paid, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found or not verified by sales' });
+    }
+
+    const customer = {
+      ...result.rows[0],
+      created_at: result.rows[0].created_at.toISOString(),
+      updated_at: result.rows[0].updated_at.toISOString()
+    };
+
+    res.json({ 
+      message: 'Finance details updated successfully', 
+      customer 
+    });
+  } catch (err) {
+    console.error('Error in /accounts/customers/:id/finance:', err);
+    res.status(500).json({ 
+      error: 'Failed to update finance details',
+      details: err.message 
+    });
+  }
+});
+
+// Remove finance details (Accounts only)
+app.delete('/accounts/customers/:id/finance', auth(['accounts']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET 
+        payment_mode = 'Cash',
+        finance_company = NULL,
+        finance_amount = NULL,
+        emi = NULL,
+        tenure = NULL,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND sales_verified = true
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found or not verified by sales' });
+    }
+
+    const customer = {
+      ...result.rows[0],
+      created_at: result.rows[0].created_at.toISOString(),
+      updated_at: result.rows[0].updated_at.toISOString()
+    };
+
+    res.json({ 
+      message: 'Finance details removed successfully', 
+      customer 
+    });
+  } catch (err) {
+    console.error('Error in /accounts/customers/:id/finance:', err);
+    res.status(500).json({ 
+      error: 'Failed to remove finance details',
+      details: err.message 
+    });
+  }
+});
+
+// Update payment amount (Accounts only)
+app.put('/accounts/customers/:id/payment', auth(['accounts']), async (req, res) => {
+  const { id } = req.params;
+  const { amount_paid } = req.body;
+
+  if (amount_paid === undefined || isNaN(amount_paid) || amount_paid < 0) {
+    return res.status(400).json({ error: 'Valid amount is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET 
+        amount_paid = $1,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND sales_verified = true
+       RETURNING *`,
+      [parseFloat(amount_paid), id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found or not verified by sales' });
+    }
+
+    const customer = {
+      ...result.rows[0],
+      created_at: result.rows[0].created_at.toISOString(),
+      updated_at: result.rows[0].updated_at.toISOString()
+    };
+
+    res.json({ 
+      message: 'Payment amount updated successfully', 
+      customer 
+    });
+  } catch (err) {
+    console.error('Error in /accounts/customers/:id/payment:', err);
+    res.status(500).json({ 
+      error: 'Failed to update payment amount',
+      details: err.message 
+    });
   }
 });
 
