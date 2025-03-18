@@ -16,7 +16,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "migrate": "node run_migration.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

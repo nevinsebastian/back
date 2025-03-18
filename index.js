@@ -34,7 +34,7 @@ const upload = multer({
 
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://192.168.29.199:3001'],
+  origin: ['http://localhost:3001', 'http://192.168.29.199:3001', 'http://172.20.10.8:3001'],
   credentials: true,
 }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -63,7 +63,7 @@ app.post('/customers', auth(['sales']), async (req, res) => {
     );
 
     const customerId = result.rows[0].id;
-    const uniqueLink = `http://localhost:3000/customer-details/${customerId}`;
+    const uniqueLink = `http://172.20.10.8:3001/customer-details/${customerId}`;
 
     res.status(201).json({
       message: 'Customer added successfully',
@@ -371,74 +371,190 @@ app.put('/customers/:id/delivered', auth(['sales']), upload, async (req, res) =>
 });
 
 // Get analytics data
-app.get('/analytics', auth(['sales', 'admin']), async (req, res) => {
+app.get('/analytics', async (req, res) => {
   try {
-    console.log('Fetching analytics data...');
+    const result = await pool.query('SELECT * FROM analytics WHERE id = 1');
     
-    // Get current analytics
-    const analyticsResult = await pool.query('SELECT * FROM analytics WHERE id = 1');
-    console.log('Analytics query result:', analyticsResult.rows);
-    
-    if (analyticsResult.rows.length === 0) {
-      console.log('No analytics data found, triggering update...');
-      await pool.query('SELECT update_analytics()');
-      const retryResult = await pool.query('SELECT * FROM analytics WHERE id = 1');
-      if (retryResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Analytics data not found' });
-      }
-      analyticsResult.rows = retryResult.rows;
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Analytics data not found' });
     }
 
+    const analytics = result.rows[0];
+
     // Get monthly trends (last 6 months)
-    console.log('Fetching monthly trends...');
     const trendsResult = await pool.query(`
       SELECT 
         DATE_TRUNC('month', created_at) as month,
         COUNT(*) as total_customers,
-        COUNT(CASE WHEN status = 'Verified' THEN 1 END) as verified_customers,
+        SUM(CASE WHEN status = 'Verified' THEN 1 ELSE 0 END) as verified_customers,
         SUM(COALESCE(amount_paid, 0)) as revenue
       FROM customers
       WHERE created_at >= NOW() - INTERVAL '6 months'
       GROUP BY DATE_TRUNC('month', created_at)
       ORDER BY month ASC
     `);
-    console.log('Trends query result:', trendsResult.rows);
 
     // Get top performing sales executives
-    console.log('Fetching top sales executives...');
     const topSalesResult = await pool.query(`
       SELECT 
-        c.created_by as sales_executive_id,
-        e.name as sales_executive_name,
+        sales_executive_id,
         COUNT(*) as total_customers,
-        COUNT(CASE WHEN c.status = 'Verified' THEN 1 END) as verified_customers,
-        SUM(COALESCE(c.amount_paid, 0)) as total_revenue
-      FROM customers c
-      LEFT JOIN employees e ON c.created_by = e.id
-      GROUP BY c.created_by, e.name
+        COUNT(CASE WHEN status = 'Verified' THEN 1 END) as verified_customers,
+        SUM(COALESCE(amount_paid, 0)) as total_revenue
+      FROM customers
+      GROUP BY sales_executive_id
       ORDER BY verified_customers DESC
       LIMIT 5
     `);
-    console.log('Top sales query result:', topSalesResult.rows);
 
-    const response = {
-      current: analyticsResult.rows[0],
+    res.json({
+      current: analytics,
       trends: trendsResult.rows,
       topSales: topSalesResult.rows
-    };
-
-    console.log('Sending analytics response:', response);
-    res.json(response);
+    });
   } catch (err) {
-    console.error('Error in /analytics endpoint:', err);
+    console.error('Error fetching analytics:', err);
+    res.status(500).json({ error: 'Failed to fetch analytics data' });
+  }
+});
+
+// Get verified customers for accounts
+app.get('/accounts/customers', auth(['accounts']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        c.*,
+        CASE 
+          WHEN c.aadhar_front IS NOT NULL THEN encode(c.aadhar_front, 'base64')
+          ELSE NULL 
+        END as aadhar_front_base64,
+        CASE 
+          WHEN c.aadhar_back IS NOT NULL THEN encode(c.aadhar_back, 'base64')
+          ELSE NULL 
+        END as aadhar_back_base64,
+        CASE 
+          WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
+          ELSE NULL 
+        END as passport_photo_base64,
+        CASE 
+          WHEN c.front_delivery_photo IS NOT NULL THEN encode(c.front_delivery_photo, 'base64')
+          ELSE NULL 
+        END as front_delivery_photo_base64,
+        CASE 
+          WHEN c.back_delivery_photo IS NOT NULL THEN encode(c.back_delivery_photo, 'base64')
+          ELSE NULL 
+        END as back_delivery_photo_base64,
+        CASE 
+          WHEN c.delivery_photo IS NOT NULL THEN encode(c.delivery_photo, 'base64')
+          ELSE NULL 
+        END as delivery_photo_base64
+      FROM customers c 
+      WHERE c.sales_verified = true
+      ORDER BY c.created_at DESC`
+    );
+
+    const customers = result.rows.map(customer => ({
+      ...customer,
+      created_at: customer.created_at.toISOString(),
+      updated_at: customer.updated_at?.toISOString()
+    }));
+
+    res.json({ customers });
+  } catch (err) {
+    console.error('Error in /accounts/customers:', err);
     res.status(500).json({ 
-      error: 'Failed to fetch analytics data',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: 'Failed to fetch customers',
+      details: err.message 
     });
   }
 });
 
+// Get single customer details for accounts
+app.get('/accounts/customers/:id', auth(['accounts']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        c.*,
+        CASE 
+          WHEN c.front_photo IS NOT NULL THEN encode(c.front_photo, 'base64')
+          ELSE NULL 
+        END as front_photo_base64,
+        CASE 
+          WHEN c.back_photo IS NOT NULL THEN encode(c.back_photo, 'base64')
+          ELSE NULL 
+        END as back_photo_base64,
+        CASE 
+          WHEN c.aadhar_photo IS NOT NULL THEN encode(c.aadhar_photo, 'base64')
+          ELSE NULL 
+        END as aadhar_photo_base64,
+        CASE 
+          WHEN c.pan_photo IS NOT NULL THEN encode(c.pan_photo, 'base64')
+          ELSE NULL 
+        END as pan_photo_base64,
+        CASE 
+          WHEN c.bank_photo IS NOT NULL THEN encode(c.bank_photo, 'base64')
+          ELSE NULL 
+        END as bank_photo_base64
+      FROM customers c 
+      WHERE c.id = $1 AND c.status = 'Verified'`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const customer = {
+      ...result.rows[0],
+      created_at: result.rows[0].created_at.toISOString(),
+      updated_at: result.rows[0].updated_at.toISOString()
+    };
+
+    res.json({ customer });
+  } catch (err) {
+    console.error('Error in /accounts/customers/:id:', err);
+    res.status(500).json({ error: 'Failed to fetch customer details' });
+  }
+});
+
+// Update customer accounts verification status
+app.put('/accounts/customers/:id/verify', auth(['accounts']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers 
+       SET 
+        accounts_verified = true,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'Verified'
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const customer = {
+      ...result.rows[0],
+      created_at: result.rows[0].created_at.toISOString(),
+      updated_at: result.rows[0].updated_at.toISOString()
+    };
+
+    res.json({ message: 'Customer verified by accounts', customer });
+  } catch (err) {
+    console.error('Error in /accounts/customers/:id/verify:', err);
+    res.status(500).json({ error: 'Failed to verify customer' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Access the server at:`);
+  console.log(`- Local: http://localhost:${PORT}`);
+  console.log(`- Network: http://172.20.10.8:${PORT}`);
 });
