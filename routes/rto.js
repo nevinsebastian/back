@@ -3,10 +3,10 @@ const router = express.Router();
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-// Get all customers for RTO
-router.get('/customers', auth(['rto']), async (req, res) => {
+// Get pending customers for RTO (verified by sales and accounts but not by RTO)
+router.get('/customers/pending', auth(['rto']), async (req, res) => {
   try {
-    console.log('Fetching customers for RTO...');
+    console.log('Fetching pending customers for RTO...');
     const result = await pool.query(
       `SELECT 
         c.*,
@@ -25,19 +25,63 @@ router.get('/customers', auth(['rto']), async (req, res) => {
         END as passport_photo_base64
        FROM customers c 
        LEFT JOIN employees e ON c.created_by = e.id 
-       WHERE c.sales_verified = true AND c.accounts_verified = true
+       WHERE c.sales_verified = true 
+       AND c.accounts_verified = true
+       AND c.rto_verified = false
        ORDER BY c.created_at DESC`
     );
 
-    console.log(`Found ${result.rows.length} customers`);
+    console.log(`Found ${result.rows.length} pending customers`);
     res.json({
-      message: 'Customers fetched successfully',
+      message: 'Pending customers fetched successfully',
       customers: result.rows,
     });
   } catch (err) {
-    console.error('Error in /rto/customers:', err);
+    console.error('Error in /rto/customers/pending:', err);
     res.status(500).json({ 
-      error: 'Failed to fetch customers',
+      error: 'Failed to fetch pending customers',
+      details: err.message 
+    });
+  }
+});
+
+// Get verified customers for RTO (verified by sales, accounts, and RTO)
+router.get('/customers/verified', auth(['rto']), async (req, res) => {
+  try {
+    console.log('Fetching verified customers for RTO...');
+    const result = await pool.query(
+      `SELECT 
+        c.*,
+        e.name as created_by_name,
+        CASE 
+          WHEN c.aadhar_front IS NOT NULL THEN encode(c.aadhar_front, 'base64')
+          ELSE NULL 
+        END as aadhar_front_base64,
+        CASE 
+          WHEN c.aadhar_back IS NOT NULL THEN encode(c.aadhar_back, 'base64')
+          ELSE NULL 
+        END as aadhar_back_base64,
+        CASE 
+          WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
+          ELSE NULL 
+        END as passport_photo_base64
+       FROM customers c 
+       LEFT JOIN employees e ON c.created_by = e.id 
+       WHERE c.sales_verified = true 
+       AND c.accounts_verified = true
+       AND c.rto_verified = true
+       ORDER BY c.created_at DESC`
+    );
+
+    console.log(`Found ${result.rows.length} verified customers`);
+    res.json({
+      message: 'Verified customers fetched successfully',
+      customers: result.rows,
+    });
+  } catch (err) {
+    console.error('Error in /rto/customers/verified:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch verified customers',
       details: err.message 
     });
   }
@@ -66,7 +110,9 @@ router.get('/customers/chassis/:chassisNumber', auth(['rto']), async (req, res) 
         END as passport_photo_base64
        FROM customers c 
        LEFT JOIN employees e ON c.created_by = e.id 
-       WHERE c.chassis_number = $1 AND c.sales_verified = true AND c.accounts_verified = true`,
+       WHERE c.chassis_number = $1 
+       AND c.sales_verified = true 
+       AND c.accounts_verified = true`,
       [chassisNumber]
     );
 
@@ -105,7 +151,10 @@ router.put('/customers/:id/status', auth(['rto']), async (req, res) => {
         status = $1,
         rto_verified = CASE WHEN $1 = 'done' THEN true ELSE rto_verified END,
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2 AND sales_verified = true AND accounts_verified = true
+       WHERE id = $2 
+       AND sales_verified = true 
+       AND accounts_verified = true
+       AND rto_verified = false
        RETURNING *`,
       [status, id]
     );
@@ -136,7 +185,9 @@ router.get('/customers/:id/chassis-image', auth(['rto']), async (req, res) => {
     const result = await pool.query(
       `SELECT chassis_image 
        FROM customers 
-       WHERE id = $1 AND sales_verified = true AND accounts_verified = true`,
+       WHERE id = $1 
+       AND sales_verified = true 
+       AND accounts_verified = true`,
       [id]
     );
 
