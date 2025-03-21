@@ -22,7 +22,19 @@ router.get('/customers/pending', auth(['rto']), async (req, res) => {
         CASE 
           WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
           ELSE NULL 
-        END as passport_photo_base64
+        END as passport_photo_base64,
+        c.ex_showroom,
+        c.tax,
+        c.insurance,
+        c.booking_fee,
+        c.accessories,
+        c.total_price,
+        c.amount_paid,
+        c.payment_mode,
+        c.finance_company,
+        c.finance_amount,
+        c.emi,
+        c.tenure
        FROM customers c 
        LEFT JOIN employees e ON c.created_by = e.id 
        WHERE c.sales_verified = true 
@@ -64,7 +76,19 @@ router.get('/customers/verified', auth(['rto']), async (req, res) => {
         CASE 
           WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
           ELSE NULL 
-        END as passport_photo_base64
+        END as passport_photo_base64,
+        c.ex_showroom,
+        c.tax,
+        c.insurance,
+        c.booking_fee,
+        c.accessories,
+        c.total_price,
+        c.amount_paid,
+        c.payment_mode,
+        c.finance_company,
+        c.finance_amount,
+        c.emi,
+        c.tenure
        FROM customers c 
        LEFT JOIN employees e ON c.created_by = e.id 
        WHERE c.sales_verified = true 
@@ -107,7 +131,19 @@ router.get('/customers/chassis/:chassisNumber', auth(['rto']), async (req, res) 
         CASE 
           WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
           ELSE NULL 
-        END as passport_photo_base64
+        END as passport_photo_base64,
+        c.ex_showroom,
+        c.tax,
+        c.insurance,
+        c.booking_fee,
+        c.accessories,
+        c.total_price,
+        c.amount_paid,
+        c.payment_mode,
+        c.finance_company,
+        c.finance_amount,
+        c.emi,
+        c.tenure
        FROM customers c 
        LEFT JOIN employees e ON c.created_by = e.id 
        WHERE c.chassis_number = $1 
@@ -136,27 +172,25 @@ router.get('/customers/chassis/:chassisNumber', auth(['rto']), async (req, res) 
 // Update customer status
 router.put('/customers/:id/status', auth(['rto']), async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
-
-  console.log(`Updating customer ${id} status to ${status}`);
-
-  if (!['pending', 'uploaded', 'done'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status' });
-  }
-
+  
   try {
+    // Cast id to integer
+    const customerId = parseInt(id, 10);
+    if (isNaN(customerId)) {
+      return res.status(400).json({ error: 'Invalid customer ID' });
+    }
+
     const result = await pool.query(
       `UPDATE customers 
        SET 
-        status = $1,
-        rto_verified = CASE WHEN $1 = 'done' THEN true ELSE rto_verified END,
+        rto_verified = true,
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2 
+       WHERE id = $1 
        AND sales_verified = true 
        AND accounts_verified = true
        AND rto_verified = false
        RETURNING *`,
-      [status, id]
+      [customerId]
     );
 
     console.log(`Update result: ${result.rows.length} rows affected`);
@@ -165,7 +199,7 @@ router.put('/customers/:id/status', auth(['rto']), async (req, res) => {
     }
 
     res.json({
-      message: 'Customer status updated successfully',
+      message: 'Customer marked as RTO verified successfully',
       customer: result.rows[0],
     });
   } catch (err) {
