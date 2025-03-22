@@ -51,4 +51,17 @@ router.post('/employees', auth(['admin']), async (req, res) => {
   }
 });
 
+// Get all employees (Admin only)
+router.get('/employees', auth(['admin']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, phone, branch_id, role, created_at FROM employees ORDER BY created_at DESC'
+    );
+    res.json({ employees: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch employees' });
+  }
+});
+
 module.exports = router;

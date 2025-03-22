@@ -696,6 +696,70 @@ app.put('/accounts/customers/:id/payment', auth(['accounts']), async (req, res) 
   }
 });
 
+// Get admin analytics data with month-over-month comparison
+app.get('/admin/analytics', auth(['admin']), async (req, res) => {
+  try {
+    // Get current month's data
+    const currentMonthResult = await pool.query(`
+      SELECT 
+        COUNT(*) as total_bookings,
+        COUNT(*) FILTER (WHERE NOT rto_verified) as pending_deliveries,
+        COUNT(*) FILTER (WHERE NOT rto_verified AND sales_verified AND accounts_verified) as rto_pending,
+        COALESCE(SUM(amount_paid), 0) as total_revenue
+      FROM customers 
+      WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
+    `);
+
+    // Get previous month's data
+    const previousMonthResult = await pool.query(`
+      SELECT 
+        COUNT(*) as total_bookings,
+        COUNT(*) FILTER (WHERE NOT rto_verified) as pending_deliveries,
+        COUNT(*) FILTER (WHERE NOT rto_verified AND sales_verified AND accounts_verified) as rto_pending,
+        COALESCE(SUM(amount_paid), 0) as total_revenue
+      FROM customers 
+      WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+    `);
+
+    const current = currentMonthResult.rows[0];
+    const previous = previousMonthResult.rows[0];
+
+    // Calculate percentage changes
+    const calculatePercentageChange = (current, previous) => {
+      if (previous === 0) return 100;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const analytics = {
+      total_bookings: {
+        current: parseInt(current.total_bookings),
+        previous: parseInt(previous.total_bookings),
+        percentage_change: calculatePercentageChange(current.total_bookings, previous.total_bookings)
+      },
+      pending_deliveries: {
+        current: parseInt(current.pending_deliveries),
+        previous: parseInt(previous.pending_deliveries),
+        percentage_change: calculatePercentageChange(current.pending_deliveries, previous.pending_deliveries)
+      },
+      rto_pending: {
+        current: parseInt(current.rto_pending),
+        previous: parseInt(previous.rto_pending),
+        percentage_change: calculatePercentageChange(current.rto_pending, previous.rto_pending)
+      },
+      total_revenue: {
+        current: parseFloat(current.total_revenue),
+        previous: parseFloat(previous.total_revenue),
+        percentage_change: calculatePercentageChange(current.total_revenue, previous.total_revenue)
+      }
+    };
+
+    res.json({ analytics });
+  } catch (err) {
+    console.error('Error fetching admin analytics:', err);
+    res.status(500).json({ error: 'Failed to fetch admin analytics' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
