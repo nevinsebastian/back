@@ -57,7 +57,7 @@ router.get('/customers/pending', auth(['rto']), async (req, res) => {
   }
 });
 
-// Get verified customers for RTO (verified by sales, accounts, and RTO)
+// Get verified customers for RTO
 router.get('/customers/verified', auth(['rto']), async (req, res) => {
   try {
     console.log('Fetching verified customers for RTO...');
@@ -102,11 +102,11 @@ router.get('/customers/verified', auth(['rto']), async (req, res) => {
       message: 'Verified customers fetched successfully',
       customers: result.rows,
     });
-  } catch (err) {
-    console.error('Error in /rto/customers/verified:', err);
-    res.status(500).json({ 
-      error: 'Failed to fetch verified customers',
-      details: err.message 
+  } catch (error) {
+    console.error('Error fetching verified customers:', error);
+    res.status(500).json({
+      message: 'Error fetching verified customers',
+      error: error.message,
     });
   }
 });
