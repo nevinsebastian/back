@@ -11,20 +11,36 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-async function runMigration() {
+async function runMigration(fileName) {
   try {
     const migrationSQL = fs.readFileSync(
-      path.join(__dirname, 'migrations', 'add_notifications_tables.sql'),
+      path.join(__dirname, 'migrations', fileName),
       'utf8'
     );
-    
     await pool.query(migrationSQL);
-    console.log('Migration completed successfully');
+    console.log(`Migration ${fileName} completed successfully`);
   } catch (err) {
-    console.error('Migration failed:', err);
-  } finally {
-    await pool.end();
+    console.error(`Migration ${fileName} failed:`, err);
   }
 }
 
-runMigration(); 
+async function runMigrations() {
+  const migrationFiles = [
+    'create_branches_table.sql',
+    'create_customers_table.sql',
+    'create_employees_table.sql',
+    '20240321_add_verification_status.sql',
+    'add_accounts_columns.sql',
+    'add_accounts_verified.sql',
+    'add_delivered_status.sql',
+    'add_notifications_tables.sql'
+  ];
+
+  for (const file of migrationFiles) {
+    await runMigration(file);
+  }
+
+  await pool.end();
+}
+
+runMigrations();

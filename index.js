@@ -767,5 +767,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Access the server at:`);
   console.log(`- Local: http://localhost:${PORT}`);
-  console.log(`- Network: http://172.20.10.8:${PORT}`);
+  console.log(`- Network: http://13.233.236.114:${PORT}`);
 });

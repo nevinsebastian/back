@@ -16,7 +16,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
+    "start": "sudo PORT=80 nodemon index.js",
     "migrate": "node run_migration.js"
   },
   "dependencies": {
