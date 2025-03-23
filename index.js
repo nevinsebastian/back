@@ -36,7 +36,7 @@ const upload = multer({
 
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://192.168.29.199:3001', 'http://172.20.10.8:3001'],
+  origin: ['http://localhost:3001', 'http://192.168.29.199:3001', 'http://172.20.10.8:3001',],
   credentials: true,
 }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -762,7 +762,7 @@ app.get('/admin/analytics', auth(['admin']), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Access the server at:`);
