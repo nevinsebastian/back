@@ -4,6 +4,7 @@ const pool = require('./db');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const rtoRoutes = require('./routes/rto');
+const notificationRoutes = require('./routes/notifications');
 const cors = require('cors');
 const auth = require('./middleware/auth');
 const multer = require('multer');
@@ -43,6 +44,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/rto', rtoRoutes);
+app.use('/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('DealerSync Backend is Running!');

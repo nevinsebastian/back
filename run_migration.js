@@ -14,7 +14,7 @@ const pool = new Pool({
 async function runMigration() {
   try {
     const migrationSQL = fs.readFileSync(
-      path.join(__dirname, 'migrations', 'add_delivered_status.sql'),
+      path.join(__dirname, 'migrations', 'add_notifications_tables.sql'),
       'utf8'
     );
     
