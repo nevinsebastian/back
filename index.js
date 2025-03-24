@@ -36,8 +36,13 @@ const upload = multer({
 
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://192.168.29.199:3001', 'http://172.20.10.8:3001',],
-  credentials: true,
+  origin: [
+    'http://localhost:3001',
+    'http://localhost:3000',
+    'http://172.20.10.8:3001',
+    'http://172.20.10.8:3000'
+  ],
+  credentials: true
 }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
@@ -759,6 +764,70 @@ app.get('/admin/analytics', auth(['admin']), async (req, res) => {
   } catch (err) {
     console.error('Error fetching admin analytics:', err);
     res.status(500).json({ error: 'Failed to fetch admin analytics' });
+  }
+});
+
+// Public endpoint to get customer details by ID
+app.get('/public/customers/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        c.*,
+        e.name as created_by_name,
+        CASE 
+          WHEN c.aadhar_front IS NOT NULL THEN encode(c.aadhar_front, 'base64')
+          ELSE NULL 
+        END as aadhar_front_base64,
+        CASE 
+          WHEN c.aadhar_back IS NOT NULL THEN encode(c.aadhar_back, 'base64')
+          ELSE NULL 
+        END as aadhar_back_base64,
+        CASE 
+          WHEN c.passport_photo IS NOT NULL THEN encode(c.passport_photo, 'base64')
+          ELSE NULL 
+        END as passport_photo_base64,
+        CASE 
+          WHEN c.front_delivery_photo IS NOT NULL THEN encode(c.front_delivery_photo, 'base64')
+          ELSE NULL 
+        END as front_delivery_photo_base64,
+        CASE 
+          WHEN c.back_delivery_photo IS NOT NULL THEN encode(c.back_delivery_photo, 'base64')
+          ELSE NULL 
+        END as back_delivery_photo_base64,
+        CASE 
+          WHEN c.delivery_photo IS NOT NULL THEN encode(c.delivery_photo, 'base64')
+          ELSE NULL 
+        END as delivery_photo_base64
+       FROM customers c 
+       LEFT JOIN employees e ON c.created_by = e.id 
+       WHERE c.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const customer = result.rows[0];
+    
+    // Convert bytea fields to base64 strings
+    const imageFields = ['aadhar_front', 'aadhar_back', 'passport_photo', 'front_delivery_photo', 'back_delivery_photo', 'delivery_photo'];
+    imageFields.forEach(field => {
+      if (customer[field]) {
+        customer[`${field}_base64`] = customer[field].toString('base64');
+      }
+      delete customer[field]; // Remove the binary data from response
+    });
+
+    res.json({ customer });
+  } catch (err) {
+    console.error('Error in /public/customers/:id:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch customer details',
+      details: err.message 
+    });
   }
 });
 

@@ -6,7 +6,9 @@
     "version": "1.0.0"
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Local development server" }
+    { "url": "http://localhost:3000", "description": "Local development server" },
+    { "url": "http://172.20.10.8:3000", "description": "Network development server" },
+    { "url": "http://192.168.29.199:3000", "description": "Alternative network server" }
   ],
   "paths": {
     "/auth/login": {
@@ -344,6 +346,75 @@
           "404": { "description": "Image not found" }
         },
         "security": [{ "bearerAuth": [] }]
+      }
+    },
+    "/public/customers/{id}": {
+      "get": {
+        "summary": "Get customer details by ID (Public endpoint - No auth required)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 },
+            "description": "The ID of the customer to fetch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer details fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "customer_name": { "type": "string", "example": "John Doe" },
+                        "phone_number": { "type": "string", "example": "1234567890" },
+                        "vehicle": { "type": "string", "example": "Model X" },
+                        "variant": { "type": "string", "example": "Standard" },
+                        "color": { "type": "string", "example": "Red" },
+                        "price": { "type": "number", "example": 25000.00 },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "created_by": { "type": "integer", "example": 1 },
+                        "created_by_name": { "type": "string", "example": "Sales Person" },
+                        "status": { "type": "string", "example": "Pending" },
+                        "dob": { "type": "string", "format": "date", "example": "1990-01-01" },
+                        "address": { "type": "string", "example": "123 Main St" },
+                        "mobile_1": { "type": "string", "example": "1234567890" },
+                        "mobile_2": { "type": "string", "example": "0987654321" },
+                        "email": { "type": "string", "example": "john.doe@example.com" },
+                        "nominee": { "type": "string", "example": "Jane Doe" },
+                        "nominee_relation": { "type": "string", "example": "Spouse" },
+                        "payment_mode": { "type": "string", "example": "Finance" },
+                        "finance_company": { "type": "string", "example": "XYZ Finance" },
+                        "finance_amount": { "type": "number", "example": 20000.00 },
+                        "amount_paid": { "type": "number", "example": 5000.00 },
+                        "ex_showroom": { "type": "number", "example": 20000.00 },
+                        "tax": { "type": "number", "example": 2000.00 },
+                        "insurance": { "type": "number", "example": 1000.00 },
+                        "booking_fee": { "type": "number", "example": 500.00 },
+                        "accessories": { "type": "number", "example": 1500.00 },
+                        "total_price": { "type": "number", "example": 25000.00 },
+                        "aadhar_front_base64": { "type": "string", "example": "base64_encoded_image" },
+                        "aadhar_back_base64": { "type": "string", "example": "base64_encoded_image" },
+                        "passport_photo_base64": { "type": "string", "example": "base64_encoded_image" },
+                        "front_delivery_photo_base64": { "type": "string", "example": "base64_encoded_image" },
+                        "back_delivery_photo_base64": { "type": "string", "example": "base64_encoded_image" },
+                        "delivery_photo_base64": { "type": "string", "example": "base64_encoded_image" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Customer not found" },
+          "500": { "description": "Server error" }
+        }
       }
     }
   },
