@@ -831,6 +831,69 @@ app.get('/public/customers/:id', async (req, res) => {
   }
 });
 
+// Public endpoint to get employee details by ID
+app.get('/public/employees/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        id,
+        name,
+        phone,
+        role,
+        rating,
+        branch_id,
+        created_at
+       FROM employees 
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    // Format the role to be more presentable (capitalize first letter and add "Executive" for sales)
+    const formatRole = (role) => {
+      switch(role) {
+        case 'sales':
+          return 'Sales Executive';
+        case 'accounts':
+          return 'Accounts Manager';
+        case 'rto':
+          return 'RTO Manager';
+        case 'admin':
+          return 'Admin';
+        default:
+          return role.charAt(0).toUpperCase() + role.slice(1);
+      }
+    };
+
+    const employee = {
+      ...result.rows[0],
+      designation: formatRole(result.rows[0].role), // Add formatted role as designation
+      created_at: result.rows[0].created_at.toISOString()
+    };
+
+    // Remove any null values and the original role field
+    Object.keys(employee).forEach(key => {
+      if (employee[key] === null) {
+        delete employee[key];
+      }
+    });
+    delete employee.role; // Remove the original role field since we now have designation
+
+    res.json({ employee });
+  } catch (err) {
+    console.error('Error in /public/employees/:id:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch employee details',
+      details: err.message 
+    });
+  }
+});
+
 const PORT = process.env.PORT || 80;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);

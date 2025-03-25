@@ -416,6 +416,52 @@
           "500": { "description": "Server error" }
         }
       }
+    },
+    "/public/employees/{id}": {
+      "get": {
+        "summary": "Get employee details by ID (Public endpoint - No auth required)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 },
+            "description": "The ID of the employee to fetch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employee details fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "employee": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "name": { "type": "string", "example": "John Smith" },
+                        "phone": { "type": "string", "example": "1234567890" },
+                        "designation": { 
+                          "type": "string", 
+                          "example": "Sales Executive",
+                          "description": "Formatted role of the employee (Sales Executive, Accounts Manager, RTO Manager, or Admin)"
+                        },
+                        "rating": { "type": "number", "format": "float", "example": 4.5 },
+                        "branch_id": { "type": "integer", "example": 1 },
+                        "created_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Employee not found" },
+          "500": { "description": "Server error" }
+        }
+      }
     }
   },
   "components": {
