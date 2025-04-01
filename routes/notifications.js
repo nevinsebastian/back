@@ -83,7 +83,7 @@ router.post('/send', auth(['admin']), async (req, res) => {
 });
 
 // Get notifications for an employee
-router.get('/employee/:employeeId', auth(['admin', 'sales', 'accounts', 'rto']), async (req, res) => {
+router.get('/employee/:employeeId', auth(['admin', 'sales', 'accounts', 'rto', 'service']), async (req, res) => {
   const { employeeId } = req.params;
   const userId = req.user.id;
 
@@ -136,7 +136,7 @@ router.put('/:notificationId/read', auth(['admin', 'sales', 'accounts', 'rto']),
 });
 
 // Get unread notification count
-router.get('/unread-count/:employeeId', auth(['admin', 'sales', 'accounts', 'rto']), async (req, res) => {
+router.get('/unread-count/:employeeId', auth(['admin', 'sales', 'accounts', 'rto', 'service']), async (req, res) => {
   const { employeeId } = req.params;
   const userId = req.user.id;
 

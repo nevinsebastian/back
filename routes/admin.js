@@ -95,7 +95,7 @@ router.post('/employees', auth(['admin']), async (req, res) => {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  if (!['sales', 'accounts', 'rto', 'admin'].includes(role)) {
+  if (!['sales', 'accounts', 'rto', 'admin', 'service'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
 
@@ -153,7 +153,7 @@ router.put('/employees/:id', auth(['admin']), async (req, res) => {
     }
 
     if (role) {
-      if (!['sales', 'accounts', 'rto', 'admin'].includes(role)) {
+      if (!['sales', 'accounts', 'rto', 'admin', 'service'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
       query += `role = $${paramCount}, `;

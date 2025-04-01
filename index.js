@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const rtoRoutes = require('./routes/rto');
 const notificationRoutes = require('./routes/notifications');
+const serviceRoutes = require('./routes/service');
 const cors = require('cors');
 const auth = require('./middleware/auth');
 const multer = require('multer');
@@ -50,6 +51,7 @@ app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/rto', rtoRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/service', serviceRoutes);
 
 app.get('/', (req, res) => {
   res.send('DealerSync Backend is Running!');

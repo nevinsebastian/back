@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS employees (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20) NOT NULL,
     branch_id INTEGER REFERENCES branches(id),
-    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'sales', 'accounts', 'rto')),
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'sales', 'accounts', 'rto', 'service')),
     password VARCHAR(255) NOT NULL,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
