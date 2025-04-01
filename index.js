@@ -183,6 +183,17 @@ app.put('/customers/:id', upload, async (req, res) => {
   const files = req.files || {};
 
   try {
+    // Format date if it exists
+    let formattedDob = null;
+    if (dob) {
+      try {
+        formattedDob = new Date(dob).toISOString().split('T')[0];
+      } catch (error) {
+        console.error('Date parsing error:', error);
+        return res.status(400).json({ error: 'Invalid date format. Please use YYYY-MM-DD' });
+      }
+    }
+
     if (token) {
       const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
       const userRole = decoded.role;
@@ -221,7 +232,7 @@ app.put('/customers/:id', upload, async (req, res) => {
     }
 
     const queryParams = [
-      dob || null,
+      formattedDob,
       address || null,
       mobile_1 || null,
       mobile_2 || null,
@@ -236,6 +247,9 @@ app.put('/customers/:id', upload, async (req, res) => {
       files.passport_photo ? files.passport_photo[0].buffer : null,
       id,
     ];
+
+    console.log('Files received:', Object.keys(files));
+    console.log('Query parameters:', queryParams);
 
     const result = await pool.query(
       `UPDATE customers 
@@ -263,7 +277,7 @@ app.put('/customers/:id', upload, async (req, res) => {
 
     return res.json({ message: 'Customer details updated successfully', customer });
   } catch (err) {
-    console.error(err);
+    console.error('Error updating customer:', err);
     res.status(500).json({ error: 'Failed to update customer details' });
   }
 });
