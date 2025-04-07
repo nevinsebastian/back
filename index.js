@@ -41,7 +41,8 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost:3000',
     'http://172.20.10.8:3001',
-    'http://172.20.10.8:3000'
+    'http://172.20.10.8:3000',
+    'http://192.168.29.198:3001'
   ],
   credentials: true
 }));
